@@ -1,0 +1,27 @@
+# Dependencias y builds
+node_modules
+dist
+dist-ssr
+coverage
+*.local
+
+# Variables de entorno: solo se versiona la plantilla.
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editores
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

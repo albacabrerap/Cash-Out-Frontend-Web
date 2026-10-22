@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="1100" gradientUnits="userSpaceOnUse"><stop stop-color="#F8F8F9"/><stop offset="1" stop-color="#EEECEF"/></linearGradient>
+    <filter id="shadow" x="240" y="130" width="1330" height="890" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#3F4058" flood-opacity=".12"/></filter>
+    <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#3F4058" fill-opacity=".07"/></pattern>
+  </defs>
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+  <rect width="1600" height="1100" fill="url(#dots)"/>
+  <text x="82" y="88" fill="#3F4058" font-family="Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="4">CASH-OUT  /  IDENTIDAD VISUAL</text>
+  <text x="82" y="150" fill="#202130" font-family="Arial,sans-serif" font-size="43" font-weight="700">Una paleta tranquila para tus finanzas.</text>
+  <text x="82" y="190" fill="#606174" font-family="Arial,sans-serif" font-size="20">Referencia visual de marca y aplicación en el producto</text>
+
+  <!-- Palette -->
+  <text x="82" y="270" fill="#3F4058" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="2">PALETA DE MARCA</text>
+  <g font-family="Arial,sans-serif">
+    <rect x="82" y="298" width="320" height="124" rx="18" fill="#3F4058"/><text x="106" y="346" fill="white" font-size="14" font-weight="700" letter-spacing="1">PIZARRA · PRIMARIO</text><text x="106" y="393" fill="white" font-size="25" font-weight="700">#3F4058</text>
+    <rect x="418" y="298" width="320" height="124" rx="18" fill="#AC93AA"/><text x="442" y="346" fill="#272333" font-size="14" font-weight="700" letter-spacing="1">MALVA · ACENTO</text><text x="442" y="393" fill="#272333" font-size="25" font-weight="700">#AC93AA</text>
+    <rect x="754" y="298" width="320" height="124" rx="18" fill="#AAAC93"/><text x="778" y="346" fill="#25271F" font-size="14" font-weight="700" letter-spacing="1">SALVIA · SECUNDARIO</text><text x="778" y="393" fill="#25271F" font-size="25" font-weight="700">#AAAC93</text>
+    <rect x="1090" y="298" width="320" height="124" rx="18" fill="#CCCCCC"/><text x="1114" y="346" fill="#30303A" font-size="14" font-weight="700" letter-spacing="1">PLATA · BORDES</text><text x="1114" y="393" fill="#30303A" font-size="25" font-weight="700">#CCCCCC</text>
+  </g>
+  <text x="82" y="474" fill="#606174" font-family="Arial,sans-serif" font-size="16">Fondo #F8F8F9  ·  Superficies #FFFFFF  ·  Texto #181928</text>
+
+  <!-- App mockup -->
+  <g filter="url(#shadow)"><rect x="82" y="520" width="1428" height="510" rx="24" fill="#FFFFFF"/></g>
+  <path d="M106 520h270v510H106a24 24 0 0 1-24-24V544a24 24 0 0 1 24-24Z" fill="#F8F8F9"/>
+  <path d="M352 520v510" stroke="#CCCCCC"/>
+  <g font-family="Arial,sans-serif">
+    <rect x="110" y="551" width="36" height="36" rx="10" fill="#3F4058"/><text x="118" y="576" fill="white" font-size="13" font-weight="700">C$</text><text x="156" y="576" fill="#3F4058" font-size="19" font-weight="700">Cash-Out</text>
+    <rect x="101" y="620" width="228" height="45" rx="10" fill="#EAE3E9"/><rect x="116" y="633" width="18" height="18" rx="4" fill="#AC93AA"/><text x="147" y="649" fill="#3F4058" font-size="15" font-weight="700">Resumen</text>
+    <text x="119" y="705" fill="#606174" font-size="14">Movimientos</text><text x="119" y="751" fill="#606174" font-size="14">Metas de ahorro</text><text x="119" y="797" fill="#606174" font-size="14">Inversiones</text>
+    <text x="398" y="579" fill="#202130" font-size="27" font-weight="700">Hola, Alex</text><text x="398" y="609" fill="#606174" font-size="14">Así van tus finanzas este mes.</text>
+    <rect x="1265" y="550" width="211" height="42" rx="10" fill="#3F4058"/><text x="1291" y="577" fill="white" font-size="14" font-weight="700">+ Registrar movimiento</text>
+    <!-- stat cards -->
+    <g><rect x="398" y="638" width="250" height="112" rx="14" fill="#FFFFFF" stroke="#CCCCCC"/><text x="418" y="668" fill="#606174" font-size="13">Ahorro total</text><text x="418" y="713" fill="#202130" font-size="26" font-weight="700">S/ 12,480</text><rect x="600" y="654" width="30" height="30" rx="9" fill="#EAE3E9"/><circle cx="615" cy="669" r="7" fill="#AC93AA"/></g>
+    <g><rect x="664" y="638" width="250" height="112" rx="14" fill="#FFFFFF" stroke="#CCCCCC"/><text x="684" y="668" fill="#606174" font-size="13">Disponible</text><text x="684" y="713" fill="#202130" font-size="26" font-weight="700">S/ 8,250</text><rect x="866" y="654" width="30" height="30" rx="9" fill="#ECEDE5"/><circle cx="881" cy="669" r="7" fill="#AAAC93"/></g>
+    <g><rect x="930" y="638" width="250" height="112" rx="14" fill="#FFFFFF" stroke="#CCCCCC"/><text x="950" y="668" fill="#606174" font-size="13">Reservado para metas</text><text x="950" y="713" fill="#202130" font-size="26" font-weight="700">S/ 4,230</text><rect x="1132" y="654" width="30" height="30" rx="9" fill="#EAE3E9"/><circle cx="1147" cy="669" r="7" fill="#AC93AA"/></g>
+    <g><rect x="1196" y="638" width="280" height="112" rx="14" fill="#FFFFFF" stroke="#CCCCCC"/><text x="1216" y="668" fill="#606174" font-size="13">Fichas</text><text x="1216" y="713" fill="#202130" font-size="26" font-weight="700">2,840</text><rect x="1428" y="654" width="30" height="30" rx="9" fill="#ECEDE5"/><circle cx="1443" cy="669" r="7" fill="#AAAC93"/></g>
+    <!-- chart -->
+    <rect x="398" y="772" width="700" height="225" rx="16" fill="#FFFFFF" stroke="#CCCCCC"/><text x="422" y="807" fill="#202130" font-size="16" font-weight="700">Ingresos y gastos</text><text x="422" y="832" fill="#606174" font-size="12">Flujo de caja · últimos 6 meses</text>
+    <path d="M433 953H1067M433 912H1067M433 871H1067" stroke="#E7E7EA"/><path d="M444 941C494 918 522 930 558 894S625 915 665 880 741 887 777 850 846 876 890 837 952 866 1006 824 1042 840 1060 812" stroke="#3F4058" stroke-width="4" stroke-linecap="round"/><path d="M444 953C486 947 525 950 558 938S628 945 665 927 737 936 777 917 848 928 890 907 955 917 1006 899 1040 908 1060 891" stroke="#AC93AA" stroke-width="4" stroke-linecap="round"/><text x="446" y="980" fill="#606174" font-size="11">May</text><text x="565" y="980" fill="#606174" font-size="11">Jun</text><text x="681" y="980" fill="#606174" font-size="11">Jul</text><text x="798" y="980" fill="#606174" font-size="11">Ago</text><text x="915" y="980" fill="#606174" font-size="11">Sep</text><text x="1031" y="980" fill="#606174" font-size="11">Oct</text>
+    <!-- goal -->
+    <rect x="1114" y="772" width="362" height="225" rx="16" fill="#FFFFFF" stroke="#CCCCCC"/><text x="1138" y="807" fill="#202130" font-size="16" font-weight="700">Meta más cercana</text><text x="1138" y="848" fill="#3F4058" font-size="16" font-weight="700">Viaje a Cusco</text><text x="1138" y="874" fill="#606174" font-size="13">S/ 3,200 de S/ 5,000</text><rect x="1138" y="895" width="314" height="12" rx="6" fill="#EEECEF"/><rect x="1138" y="895" width="201" height="12" rx="6" fill="#AAAC93"/><text x="1138" y="944" fill="#606174" font-size="12">64% completado</text><rect x="1138" y="958" width="126" height="28" rx="8" fill="#EAE3E9"/><text x="1154" y="977" fill="#3F4058" font-size="12" font-weight="700">Ver mi meta →</text>
+  </g>
+</svg>

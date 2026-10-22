@@ -1,0 +1,260 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource/instrument-serif/latin-400.css";
+@import "@fontsource/instrument-serif/latin-400-italic.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Todo sale de la paleta de la marca (pizarra, malva, salvia, gris) graduada hacia blanco y negro.
+   Ingresos van en oliva (salvia oscura) y gastos en ciruela (malva oscura). */
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Instrument Serif', ui-serif, Georgia, serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Tokens del dominio: text-income, bg-expense, text-gain, text-loss... */
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-signal-up: var(--signal-up);
+  --color-signal-down: var(--signal-down);
+  --color-silver: var(--silver);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+:root {
+  --radius: 0.5rem;
+
+  /* Paleta de la marca. Los demas tonos son estos mismos aclarados u oscurecidos (en OKLCH)
+     hasta que el texto encima llega a 4.5:1. */
+  --slate: #3f4058;
+  --mauve: #ac93aa;
+  --sage: #aaac93;
+  --silver: #cccccc;
+
+  /* Verde y rojo de siempre, fuera de la paleta: para lo que se lee como gana/pierde o sube/baja. */
+  --signal-up: #0e9f6e;
+  --signal-down: #b91c1c;
+  /* Cuadricula y ejes de las graficas, tambien como estaban. */
+  --chart-grid: hsl(240 5.9% 90%);
+  --chart-axis: hsl(240 3.8% 46.1%);
+
+  --background: #f8f8f9;
+  --foreground: #181928;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  --primary: var(--slate);
+  --primary-foreground: #ffffff;
+  --secondary: var(--sage);
+  --secondary-foreground: var(--foreground);
+  --muted: #eeeef1;
+  --muted-foreground: #606174;
+  --accent: #eae3e9;
+  --accent-foreground: var(--slate);
+  --destructive: #9a3e67;
+  --border: var(--silver);
+  --input: var(--silver);
+  --ring: var(--slate);
+
+  --chart-1: #91768f;
+  --chart-2: var(--slate);
+  --chart-3: var(--sage);
+  --chart-4: #9d9ea5;
+  --chart-5: var(--mauve);
+
+  --income: #606939;
+  --expense: #7f5175;
+  --gain: var(--signal-up);
+  --loss: var(--signal-down);
+  --success: var(--income);
+  --warning: #81632f;
+
+  /* Cursivas de los titulos de la landing. */
+  --accent-ink: #7a6178;
+
+  /* Colores para distinguir cosas (categorias, metas); en este orden pasan el validador de daltonismo en ambos temas. */
+  --series-1: #a35a98;
+  --series-2: #c6852f;
+  --series-3: #4f84c4;
+  --series-4: #76962c;
+  --series-5: #d66a88;
+  --series-6: #8673d1;
+  --series-7: #2d9a85;
+
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+.dark {
+  --signal-up: #29a87c;
+  --signal-down: #cf3131;
+  --chart-grid: hsl(240 3.7% 15.9%);
+  --chart-axis: hsl(240 5% 64.9%);
+
+  --background: #0c0c15;
+  --foreground: #f1f1f5;
+  --card: #141520;
+  --popover: #141520;
+  /* El pizarra casi no se distingue del fondo: en oscuro los botones principales van en gris claro. */
+  --primary: var(--silver);
+  --primary-foreground: var(--background);
+  --secondary-foreground: var(--background);
+  --muted: #242534;
+  --muted-foreground: #acadb7;
+  --accent: #332d3a;
+  --accent-foreground: var(--foreground);
+  --destructive: #db87a8;
+  --border: var(--slate);
+  --input: var(--slate);
+  --ring: var(--mauve);
+
+  --chart-1: var(--mauve);
+  --chart-2: var(--silver);
+
+  --income: #b9bf97;
+  --expense: #c8a4c3;
+  --warning: #d5ba82;
+
+  --accent-ink: #c9b6c8;
+
+  --series-1: #b56aa9;
+  --series-2: #bf8233;
+  --series-3: #5f92d2;
+  --series-4: #7fa03a;
+  --series-5: #d46e8b;
+  --series-6: #9483dc;
+  --series-7: #3aa892;
+
+  --sidebar: var(--card);
+}
+
+/* Las graficas de ingresos y gastos y de precios conservan su cuadricula y sus ejes. */
+[data-slot='chart'] {
+  --border: var(--chart-grid);
+  --muted-foreground: var(--chart-axis);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+/* Barra de NavigationProgress: un tramo que cruza la pantalla en bucle. */
+@keyframes nav-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+/* Resumen: trazos que se dibujan, barras que crecen, la aguja que se acomoda y el ticker.
+   Solo declaran el punto de partida: si la animacion no corre, queda el estado final. */
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes needle {
+  from {
+    transform: rotate(-90deg);
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Minijuegos: las manchas de luz de la portada de la carrera van y vienen. */
+@keyframes aurora-drift {
+  50% {
+    transform: translate(3rem, -1.5rem) scale(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
