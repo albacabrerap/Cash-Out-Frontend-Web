@@ -6,6 +6,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { formatSoles } from '@/lib/format'
 import { currentMonth, formatMonthTitle, monthFromParam, summarizeMonth } from '@/lib/monthOverview'
 import { movementService } from '@/services/movementService'
+import { AssistantComposer } from '@/components/assistant/AssistantComposer'
 import { ErrorState } from '@/components/feedback/ErrorState'
 import { CategoryDonut } from '@/components/movements/CategoryDonut'
 import type { MovementsOutletContext } from '@/components/movements/MovementsList'
@@ -82,6 +83,8 @@ function MovementsOverview() {
           </Button>
         </div>
       </div>
+
+      <AssistantComposer onSaved={refresh} />
 
       {query.error && !query.data ? (
         <ErrorState error={query.error} onRetry={query.reload} title="No pudimos cargar el resumen del mes" />

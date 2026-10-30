@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { Star } from 'lucide-react'
 import { useApiQuery } from '@/hooks/useApiQuery'
 import type { OrderTarget } from '@/hooks/useOrderForm'
 import type { ChartRange } from '@/lib/chartRanges'
@@ -18,10 +19,12 @@ interface AssetDetailPanelProps {
   /** Lo que el usuario tiene de este activo, si tiene. */
   position: Position | undefined
   onTrade: (target: OrderTarget) => void
+  favorite: boolean
+  onToggleFavorite: () => void
 }
 
 /** El activo elegido en la lista: su precio, su grafico y comprar o vender sin cambiar de pagina. */
-export function AssetDetailPanel({ asset, position, onTrade }: AssetDetailPanelProps) {
+export function AssetDetailPanel({ asset, position, onTrade, favorite, onToggleFavorite }: AssetDetailPanelProps) {
   const [range, setRange] = useState<ChartRange>('1M')
   const quote = useApiQuery(['quote', asset.id], (signal) => marketService.getQuote(asset.id, signal))
   const history = useApiQuery(['history', asset.id], (signal) => marketService.getPriceHistory(asset.id, signal))
@@ -41,12 +44,21 @@ export function AssetDetailPanel({ asset, position, onTrade }: AssetDetailPanelP
         <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent font-bold text-accent-ink">
           {asset.symbol[0]}
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 id="mercado-detalle" className="text-lg font-semibold">
             {asset.symbol}
           </h2>
           <p className="truncate text-[12.5px] text-muted-foreground">{asset.name}</p>
         </div>
+        <Button
+          variant="outline"
+          size="icon-sm"
+          aria-pressed={favorite}
+          aria-label={favorite ? `Quitar ${asset.symbol} de favoritos` : `Agregar ${asset.symbol} a favoritos`}
+          onClick={onToggleFavorite}
+        >
+          <Star aria-hidden="true" className={cn(favorite && 'fill-current text-accent-ink')} />
+        </Button>
       </div>
       <p className="mt-3.5 flex flex-wrap items-baseline gap-x-2.5">
         <span className="font-mono text-[1.75rem] font-medium tracking-tight tabular-nums">

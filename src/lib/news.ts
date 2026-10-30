@@ -88,18 +88,3 @@ export function appendNews(current: readonly NewsItem[], next: readonly NewsItem
   const seen = new Set(current.map((item) => item.id))
   return [...current, ...next.filter((item) => !seen.has(item.id))]
 }
-
-/** El trazo de un minigrafico de width x height; vacio con menos de dos puntos. */
-export function sparklinePath(values: readonly number[], width: number, height: number): string {
-  if (values.length < 2) return ''
-  const min = Math.min(...values)
-  const range = Math.max(...values) - min || 1
-  const step = width / (values.length - 1)
-  return values
-    .map((value, i) => {
-      const x = (i * step).toFixed(1)
-      const y = (height - 1 - ((value - min) / range) * (height - 2)).toFixed(1)
-      return `${i === 0 ? 'M' : 'L'}${x} ${y}`
-    })
-    .join(' ')
-}

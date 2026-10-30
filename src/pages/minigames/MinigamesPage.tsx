@@ -10,6 +10,11 @@ import { ErrorState } from '@/components/feedback/ErrorState'
 import { MinigameCard } from '@/components/minigames/MinigameCard'
 import { RaceHero } from '@/components/minigames/RaceHero'
 import { SessionHistory } from '@/components/minigames/SessionHistory'
+import { LiveGameHero } from '@/components/minigames/LiveGameHero'
+import { PORTFOLIO_GAME_RULES } from '@/components/portfolioGame/portfolioGameRules'
+import { UPDOWN_RULES } from '@/components/updown/updownRules'
+import { portfolioGameService } from '@/services/portfolioGameService'
+import { updownService } from '@/services/updownService'
 import { Skeleton } from '@/components/ui/skeleton'
 
 /** Los gratis primero: son la puerta de entrada para quien todavia no tiene fichas. */
@@ -56,6 +61,42 @@ export default function MinigamesPage() {
       </div>
 
       <RaceHero />
+      <LiveGameHero
+        id="minijuegos-subebaja"
+        eyebrow={
+          <>
+            <span aria-hidden="true" className="text-gain">
+              ▲
+            </span>
+            Macroeconomía en vivo
+            <span aria-hidden="true" className="text-loss">
+              ▼
+            </span>
+          </>
+        }
+        title={
+          <>
+            ¿Sube o <em className="text-accent-ink">baja</em>?
+          </>
+        }
+        description="Una noticia real, el gráfico hasta ese día y un mes tapado. La clase apuesta qué pasó y al revelar se ve por qué: tasas, inflación, crisis bancarias y resultados de empresas."
+        rules={UPDOWN_RULES}
+        create={updownService.create}
+        basePath="/minijuegos/sube-o-baja"
+      />
+      <LiveGameHero
+        id="minijuegos-portafolio"
+        eyebrow="Diversificación en vivo"
+        title={
+          <>
+            Arma tu <em className="text-accent-ink">portafolio</em>
+          </>
+        }
+        description="Reparte tu dinero entre 8 sectores y mira cómo le va en cinco semestres reales del mercado, entre la inflación de 2022, el boom de la IA y la guerra de aranceles."
+        rules={PORTFOLIO_GAME_RULES}
+        create={portfolioGameService.create}
+        basePath="/minijuegos/arma-tu-portafolio"
+      />
 
       <section aria-labelledby="minijuegos-juegos" className="space-y-3">
         <h2 id="minijuegos-juegos" className="text-base font-semibold">

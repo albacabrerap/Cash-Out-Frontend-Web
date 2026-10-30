@@ -7,9 +7,12 @@ import { toApiError, userMessage } from '@/api/errors'
 import type { SessionEndReason } from '@/api/tokenStore'
 import { useAuth } from '@/hooks/useAuth'
 import { applyServerFieldErrors } from '@/lib/formErrors'
+import { googleClientId } from '@/lib/googleIdentity'
 import { cn } from '@/lib/utils'
 import { loginSchema, type LoginValues } from '@/lib/validation'
 import { PasswordInput } from '@/components/forms/PasswordInput'
+import { CheckYourEmail } from '@/components/auth/CheckYourEmail'
+import { GoogleSignIn } from '@/components/auth/GoogleSignIn'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -25,6 +28,7 @@ const END_REASON_MESSAGES: Record<SessionEndReason, string> = {
 export default function LoginPage() {
   const { login, endReason } = useAuth()
   const [formError, setFormError] = useState<string | null>(null)
+  const [unverified, setUnverified] = useState<string | null>(null)
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -34,14 +38,22 @@ export default function LoginPage() {
 
   const onSubmit = async (values: LoginValues) => {
     setFormError(null)
+    setUnverified(null)
     try {
       // GuestOnly redirige al abrirse la sesion.
       await login(values)
     } catch (err) {
       const error = toApiError(err)
-      if (error.status === 401) {
+      if (error.status === 403) {
+        // La contrasena era correcta: falta confirmar el correo.
+        setUnverified(values.email)
+      } else if (error.status === 401) {
         // El backend no distingue correo de contrasena para no revelar que correos existen.
-        setFormError('Correo o contraseña incorrectos.')
+        setFormError(
+          googleClientId()
+            ? 'Correo o contraseña incorrectos. Si creaste tu cuenta con Google, entra con el botón de Google.'
+            : 'Correo o contraseña incorrectos.',
+        )
         form.resetField('password', { keepError: false })
         form.setFocus('password')
       } else if (!applyServerFieldErrors(error, form.setError, ['email', 'password'])) {
@@ -71,6 +83,9 @@ export default function LoginPage() {
             <AlertDescription>{formError}</AlertDescription>
           </Alert>
         )}
+        {unverified && <CheckYourEmail email={unverified} title="Falta confirmar tu correo" />}
+
+        <GoogleSignIn onError={setFormError} />
 
         <form noValidate onSubmit={form.handleSubmit(onSubmit)} className={cn(AUTH_FORM_ENTER, 'flex flex-col gap-6')}>
           <FieldGroup>

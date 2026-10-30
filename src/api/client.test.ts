@@ -5,12 +5,22 @@ import { createApiClient } from './client'
 import { ApiError } from './errors'
 import { tokenStore, type SessionEvent } from './tokenStore'
 
-/** Backend falso con la misma regla que el real: cada refresh token sirve una sola vez. */
+/**
+ * Backend falso con la misma regla que el real: cada refresh token sirve una
+ * sola vez. El token vive en la cookie, que aqui simula el navegador: la manda
+ * sola y la reemplaza con cada respuesta.
+ */
 function fakeBackend() {
   let validAccess = 'access-1'
   let validRefresh = 'refresh-1'
   let generation = 1
-  const state = { refreshCalls: 0, refreshRejectsWith: undefined as undefined | 'network' | 401 }
+  const state = {
+    refreshCalls: 0,
+    refreshRejectsWith: undefined as undefined | 'network' | 401,
+    cookie: 'refresh-1' as string | null,
+    refreshBodies: [] as unknown[],
+    sessionModes: [] as unknown[],
+  }
 
   const reply = (config: InternalAxiosRequestConfig, status: number, data: unknown) => {
     const response = { data, status, statusText: String(status), headers: {}, config }
@@ -33,14 +43,17 @@ function fakeBackend() {
       if (state.refreshRejectsWith === 'network') {
         throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config)
       }
-      const { refreshToken } = JSON.parse(config.data as string) as { refreshToken: string }
-      if (state.refreshRejectsWith === 401 || refreshToken !== validRefresh) {
+      state.refreshBodies.push(config.data)
+      state.sessionModes.push(AxiosHeaders.from(config.headers).get('X-Session-Mode'))
+      if (state.refreshRejectsWith === 401 || state.cookie !== validRefresh) {
+        state.cookie = null
         return reply(config, 401, { status: 401, message: 'La sesion ya no es valida.' })
       }
       generation++
       validAccess = `access-${generation}`
       validRefresh = `refresh-${generation}`
-      const auth: Partial<AuthResponse> = { accessToken: validAccess, refreshToken: validRefresh }
+      state.cookie = validRefresh
+      const auth: Partial<AuthResponse> = { accessToken: validAccess }
       return reply(config, 200, auth)
     }
 
@@ -60,7 +73,7 @@ function fakeBackend() {
 
 /** Sesion con el access token ya vencido. */
 function startWithExpiredAccess() {
-  tokenStore.setSession({ accessToken: 'stale', refreshToken: 'refresh-1' } as AuthResponse)
+  tokenStore.setSession({ accessToken: 'stale' } as AuthResponse)
 }
 
 describe('cliente HTTP: renovacion de sesion', () => {
@@ -79,7 +92,11 @@ describe('cliente HTTP: renovacion de sesion', () => {
 
     expect(backend.state.refreshCalls).toBe(1)
     expect(results.map((r) => r.data.url)).toEqual(['/a', '/b', '/c', '/d', '/e'])
-    expect(tokenStore.getRefreshToken()).toBe('refresh-2')
+    expect(backend.state.cookie).toBe('refresh-2')
+    // El token nunca pasa por JavaScript: el refresh va sin cuerpo y pide la cookie.
+    expect(backend.state.refreshBodies).toEqual([undefined])
+    expect(backend.state.sessionModes).toEqual(['cookie'])
+    expect(tokenStore.hasSession()).toBe(true)
   })
 
   it('si el refresh responde 401, la sesion se cierra como expirada', async () => {
@@ -96,7 +113,7 @@ describe('cliente HTTP: renovacion de sesion', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(401)
-    expect(tokenStore.getRefreshToken()).toBeNull()
+    expect(tokenStore.hasSession()).toBe(false)
     expect(events).toContainEqual({ type: 'cleared', reason: 'expired' })
   })
 
@@ -107,7 +124,7 @@ describe('cliente HTTP: renovacion de sesion', () => {
     startWithExpiredAccess()
 
     await expect(http.get('/a')).rejects.toBeInstanceOf(ApiError)
-    expect(tokenStore.getRefreshToken()).toBe('refresh-1')
+    expect(tokenStore.hasSession()).toBe(true)
   })
 
   it('un 401 del login es "credenciales incorrectas" y no dispara un refresh', async () => {
@@ -124,7 +141,7 @@ describe('cliente HTTP: renovacion de sesion', () => {
     expect(backend.state.refreshCalls).toBe(0)
   })
 
-  it('sin refresh token guardado no intenta renovar', async () => {
+  it('sin sesion en este navegador no intenta renovar', async () => {
     const backend = fakeBackend()
     const { http } = createApiClient({ baseURL: '/api/v1', adapter: backend.adapter })
 

@@ -120,3 +120,11 @@ export const priceFormSchema = z.object({
 
 export type PriceFormValues = z.input<typeof priceFormSchema>
 export type PriceFormOutput = z.output<typeof priceFormSchema>
+
+// Alpaca agrega la clase de accion al nombre ("Apple Inc. Common Stock"); para el titulo sobra.
+const SHARE_CLASS = /\s+(?:Class [A-Z]\s+)?(?:Common Stock|Common Shares|Ordinary Shares|American Depositary Shares)$/i
+
+/** "Apple Inc. Common Stock" → "Apple Inc." */
+export function displayName(name: string): string {
+  return name.replace(SHARE_CLASS, '').trim() || name
+}

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -67,9 +67,10 @@ export function CreateRaceForm({ className }: { className?: string }) {
   )
 }
 
-/** Entrar a una sala con su codigo de 6 caracteres. */
-export function JoinRaceForm({ className }: { className?: string }) {
+/** Entrar a una sala con su codigo de 6 caracteres; `basePath` es la ruta del juego. */
+export function JoinRaceForm({ className, basePath = '/carrera' }: { className?: string; basePath?: string }) {
   const navigate = useNavigate()
+  const inputId = useId()
   const [code, setCode] = useState('')
   const [codeError, setCodeError] = useState<string | null>(null)
 
@@ -80,17 +81,17 @@ export function JoinRaceForm({ className }: { className?: string }) {
       setCodeError('El código tiene 6 letras y números, como K7M2QX.')
       return
     }
-    navigate(`/carrera/${normalized}`)
+    navigate(`${basePath}/${normalized}`)
   }
 
   return (
     <form noValidate onSubmit={join} className={cn('flex flex-col gap-2 sm:flex-row sm:items-start', className)}>
       <Field data-invalid={!!codeError} className="flex-1">
-        <FieldLabel htmlFor="race-code" className="sr-only">
+        <FieldLabel htmlFor={inputId} className="sr-only">
           Código de la sala
         </FieldLabel>
         <Input
-          id="race-code"
+          id={inputId}
           value={code}
           onChange={(event) => {
             setCode(event.target.value.toUpperCase())

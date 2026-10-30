@@ -1,12 +1,15 @@
 import type { AuthResponse } from '@/types/auth'
 
 /**
- * El access token vive solo en memoria. El refresh token va a localStorage para
- * sobrevivir a un F5; lo protege que el backend lo rota en cada uso y revoca la
- * sesion si alguien reusa uno viejo.
+ * El access token vive solo en memoria. El de refresco ya no pasa por
+ * JavaScript: el backend lo deja en una cookie HttpOnly que un XSS no puede
+ * leer. Aqui solo queda una marca sin secretos de que hay sesion, para saber
+ * si vale la pena restaurarla al recargar y para cerrar todas las pestanas.
  */
 
-const REFRESH_KEY = 'cashout.refreshToken'
+const SESSION_KEY = 'cashout.session'
+/** Donde vivia el token de refresco antes de la cookie: se borra si quedo. */
+const LEGACY_REFRESH_KEY = 'cashout.refreshToken'
 
 export type SessionEvent =
   | { type: 'refreshed'; auth: AuthResponse }
@@ -18,27 +21,21 @@ let accessToken: string | null = null
 const listeners = new Set<(event: SessionEvent) => void>()
 
 // localStorage lanza en modo privado o con la cuota llena.
-function readRefreshToken(): string | null {
+function readFlag(): boolean {
   try {
-    return localStorage.getItem(REFRESH_KEY)
+    return localStorage.getItem(SESSION_KEY) === '1'
   } catch {
-    return null
+    return false
   }
 }
 
-function writeRefreshToken(token: string): void {
+function writeFlag(on: boolean): void {
   try {
-    localStorage.setItem(REFRESH_KEY, token)
+    if (on) localStorage.setItem(SESSION_KEY, '1')
+    else localStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem(LEGACY_REFRESH_KEY)
   } catch {
-    // La sesion sigue funcionando, solo no sobrevive a recargar.
-  }
-}
-
-function removeRefreshToken(): void {
-  try {
-    localStorage.removeItem(REFRESH_KEY)
-  } catch {
-    // Sin almacenamiento no hay nada que borrar.
+    // Sin almacenamiento la sesion sigue, solo no se restaura al recargar.
   }
 }
 
@@ -51,20 +48,20 @@ export const tokenStore = {
     return accessToken
   },
 
-  /** Se lee cada vez: si otra pestana lo roto, hay que usar el nuevo. */
-  getRefreshToken(): string | null {
-    return readRefreshToken()
+  /** Si hubo una sesion en este navegador; la cookie la confirma o no al refrescar. */
+  hasSession(): boolean {
+    return readFlag()
   },
 
   setSession(auth: AuthResponse): void {
     accessToken = auth.accessToken
-    writeRefreshToken(auth.refreshToken)
+    writeFlag(true)
     emit({ type: 'refreshed', auth })
   },
 
   clear(reason: SessionEndReason): void {
     accessToken = null
-    removeRefreshToken()
+    writeFlag(false)
     emit({ type: 'cleared', reason })
   },
 
@@ -79,7 +76,7 @@ export const tokenStore = {
 // Cerrar sesion en una pestana la cierra en las demas.
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
-    if (event.key === REFRESH_KEY && event.newValue === null && accessToken !== null) {
+    if (event.key === SESSION_KEY && event.newValue === null && accessToken !== null) {
       accessToken = null
       emit({ type: 'cleared', reason: 'other-tab' })
     }

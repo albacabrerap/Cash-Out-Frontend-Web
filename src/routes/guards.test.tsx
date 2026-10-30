@@ -14,6 +14,9 @@ const valeria: User = {
   status: 'ACTIVE',
   birthDate: null,
   createdAt: '2026-10-03T18:47:00',
+  googleOnly: false,
+  googleLinked: false,
+  emailVerified: true,
 }
 
 function authValue(overrides: Partial<AuthContextValue>): AuthContextValue {
@@ -23,6 +26,8 @@ function authValue(overrides: Partial<AuthContextValue>): AuthContextValue {
     endReason: null,
     login: vi.fn(),
     register: vi.fn(),
+    loginWithGoogle: vi.fn(),
+    verifyEmail: vi.fn(),
     logout: vi.fn(async () => {}),
     updateUser: vi.fn(),
     retryRestore: vi.fn(),

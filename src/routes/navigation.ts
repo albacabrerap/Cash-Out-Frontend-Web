@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  ArrowUpDown,
   Calculator,
   ChartCandlestick,
   Gamepad2,
@@ -22,15 +23,16 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/resumen', label: 'Resumen', icon: LayoutDashboard, roles: ['USER'] },
-  { to: '/movimientos', label: 'Movimientos', icon: ArrowLeftRight, roles: ['USER'] },
-  { to: '/metas', label: 'Metas', icon: Target, roles: ['USER'] },
-  { to: '/proyeccion', label: 'Proyección', icon: Calculator, roles: ['USER'] },
-  { to: '/portafolio', label: 'Portafolio', icon: ChartCandlestick, roles: ['USER'] },
-  { to: '/minijuegos', label: 'Minijuegos', icon: Gamepad2, roles: ['USER'] },
+  { to: '/resumen', label: 'Resumen', icon: LayoutDashboard, roles: ['USER', 'GUEST'] },
+  { to: '/movimientos', label: 'Movimientos', icon: ArrowLeftRight, roles: ['USER', 'GUEST'] },
+  { to: '/metas', label: 'Metas', icon: Target, roles: ['USER', 'GUEST'] },
+  { to: '/proyeccion', label: 'Proyección', icon: Calculator, roles: ['USER', 'GUEST'] },
+  { to: '/portafolio', label: 'Portafolio', icon: ChartCandlestick, roles: ['USER', 'GUEST'] },
+  { to: '/minijuegos', label: 'Minijuegos', icon: Gamepad2, roles: ['USER', 'GUEST'] },
   { to: '/admin', label: 'Panel', icon: LayoutGrid, roles: ['ADMIN'], end: true },
   { to: '/admin/usuarios', label: 'Usuarios', icon: Users, roles: ['ADMIN'] },
   { to: '/admin/minijuegos', label: 'Minijuegos', icon: Gamepad2, roles: ['ADMIN'] },
+  { to: '/admin/sube-o-baja', label: 'Sube o baja', icon: ArrowUpDown, roles: ['ADMIN'] },
   { to: '/admin/activos', label: 'Activos', icon: ChartCandlestick, roles: ['ADMIN'] },
 ]
 

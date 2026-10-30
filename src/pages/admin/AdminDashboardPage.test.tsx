@@ -22,6 +22,9 @@ const user = (id: number, overrides: Partial<User> = {}): User => ({
   status: 'ACTIVE',
   birthDate: null,
   createdAt: `2026-10-0${id}T12:00:00`,
+  googleOnly: false,
+  googleLinked: false,
+  emailVerified: true,
   ...overrides,
 })
 

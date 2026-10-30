@@ -16,6 +16,9 @@ const admin: User = {
   status: 'ACTIVE',
   birthDate: null,
   createdAt: '2026-10-05T21:00:00',
+  googleOnly: false,
+  googleLinked: false,
+  emailVerified: true,
 }
 const valeria: User = { ...admin, id: 5, name: 'Valeria Quispe', email: 'valeria@checkout.test', roles: ['USER'], createdAt: '2026-10-03T18:47:00' }
 const andres: User = { ...admin, id: 2, name: 'Andrés Núñez', email: 'andres@utec.edu.pe', roles: ['USER'], status: 'INACTIVE', createdAt: '2026-09-01T10:00:00' }

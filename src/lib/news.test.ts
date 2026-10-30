@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NewsItem } from '@/types/news'
-import { appendNews, formatNewsStamp, formatNewsTime, groupNewsByDay, isNewsScope, sparklinePath } from './news'
+import { appendNews, formatNewsStamp, formatNewsTime, groupNewsByDay, isNewsScope } from './news'
 
 // Fechas en hora local, para que el test no dependa de la zona de quien lo corre.
 const now = new Date(2026, 9, 18, 15, 0)
@@ -53,17 +53,6 @@ describe('groupNewsByDay', () => {
 describe('appendNews', () => {
   it('agrega la pagina nueva sin repetir notas', () => {
     expect(appendNews([item(1, at(18, 9)), item(2, at(18, 8))], [item(2, at(18, 8)), item(3, at(18, 7))]).map((news) => news.id)).toEqual([1, 2, 3])
-  })
-})
-
-describe('sparklinePath', () => {
-  it('ocupa todo el ancho y pone el maximo arriba', () => {
-    expect(sparklinePath([1, 3, 2], 80, 30)).toBe('M0.0 29.0 L40.0 1.0 L80.0 15.0')
-  })
-
-  it('sin dos puntos no dibuja; una serie plana queda en la base', () => {
-    expect(sparklinePath([5], 80, 30)).toBe('')
-    expect(sparklinePath([5, 5], 80, 30)).toBe('M0.0 29.0 L80.0 29.0')
   })
 })
 

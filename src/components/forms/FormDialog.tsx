@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 
 interface FormDialogContentProps {
   title: string
@@ -21,6 +22,8 @@ interface FormDialogContentProps {
   error: string | null
   /** Para cuando el formulario no se puede enviar todavia (p. ej. sin saldo). */
   submitDisabled?: boolean
+  /** Para dialogos mas anchos que el de siempre. */
+  className?: string
   children: ReactNode
 }
 
@@ -34,6 +37,7 @@ export function FormDialogContent({
   pending,
   error,
   submitDisabled = false,
+  className,
   children,
 }: FormDialogContentProps) {
   const blockWhilePending = (event: Event) => {
@@ -45,7 +49,7 @@ export function FormDialogContent({
       showCloseButton={!pending}
       onEscapeKeyDown={blockWhilePending}
       onInteractOutside={blockWhilePending}
-      className="sm:max-w-lg"
+      className={cn('sm:max-w-lg', className)}
     >
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>

@@ -25,40 +25,46 @@ interface OrderTicketProps {
   onAssetChange: (asset: TicketAsset | null) => void
   onSideChange: (side: OrderSide) => void
   onDone: (order: TradeOrder) => void
+  /** En la pagina de un activo: sin buscador ni boton para cambiarlo. */
+  locked?: boolean
 }
 
 /** Comprar o vender sin salir del portafolio: buscar el activo, armar la orden, revisarla y confirmar. */
-export function OrderTicket({ asset, side, positions, onAssetChange, onSideChange, onDone }: OrderTicketProps) {
+export function OrderTicket({ asset, side, positions, onAssetChange, onSideChange, onDone, locked = false }: OrderTicketProps) {
   const held = asset ? (positions?.find((position) => position.assetId === asset.assetId)?.quantity ?? 0) : 0
 
   return (
     <section aria-labelledby="portafolio-orden" className="rounded-2xl border bg-card p-5">
       <h2 id="portafolio-orden" className="text-base font-semibold">
-        Nueva orden
+        {locked && asset ? `Operar ${asset.symbol}` : 'Nueva orden'}
       </h2>
-      <AssetSearch
-        onPick={(picked) => onAssetChange({ assetId: picked.id, symbol: picked.symbol, name: picked.name })}
-        suggestions={positions}
-        onPickPosition={(position) =>
-          onAssetChange({ assetId: position.assetId, symbol: position.symbol, name: position.assetName })
-        }
-        showSuggestions={!asset}
-      />
+      {!locked && (
+        <AssetSearch
+          onPick={(picked) => onAssetChange({ assetId: picked.id, symbol: picked.symbol, name: picked.name })}
+          suggestions={positions}
+          onPickPosition={(position) =>
+            onAssetChange({ assetId: position.assetId, symbol: position.symbol, name: position.assetName })
+          }
+          showSuggestions={!asset}
+        />
+      )}
 
       {asset ? (
         <>
-          <div className="mt-3.5 flex items-center gap-3 rounded-xl bg-muted/60 p-3">
-            <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-accent font-bold text-accent-ink">
-              {asset.symbol[0]}
-            </span>
-            <span className="min-w-0 flex-1">
-              <strong className="block truncate font-semibold">{asset.symbol}</strong>
-              <span className="block truncate text-xs text-muted-foreground">{asset.name}</span>
-            </span>
-            <Button variant="ghost" size="icon-sm" aria-label="Quitar el activo" onClick={() => onAssetChange(null)}>
-              <X aria-hidden="true" />
-            </Button>
-          </div>
+          {!locked && (
+            <div className="mt-3.5 flex items-center gap-3 rounded-xl bg-muted/60 p-3">
+              <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-accent font-bold text-accent-ink">
+                {asset.symbol[0]}
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block truncate font-semibold">{asset.symbol}</strong>
+                <span className="block truncate text-xs text-muted-foreground">{asset.name}</span>
+              </span>
+              <Button variant="ghost" size="icon-sm" aria-label="Quitar el activo" onClick={() => onAssetChange(null)}>
+                <X aria-hidden="true" />
+              </Button>
+            </div>
+          )}
           <div role="group" aria-label="Tipo de orden" className="mt-3.5 flex rounded-lg bg-muted p-0.5">
             {(['BUY', 'SELL'] as const).map((value) => (
               <button

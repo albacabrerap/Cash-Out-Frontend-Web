@@ -31,6 +31,9 @@ const valeria: User = {
   status: 'ACTIVE',
   birthDate: '2004-05-12',
   createdAt: '2026-10-03T18:47:00',
+  googleOnly: false,
+  googleLinked: false,
+  emailVerified: true,
 }
 
 function renderPage(user: User = valeria) {
@@ -40,6 +43,8 @@ function renderPage(user: User = valeria) {
     endReason: null,
     login: vi.fn(async () => user),
     register: vi.fn(),
+    loginWithGoogle: vi.fn(),
+    verifyEmail: vi.fn(),
     logout: vi.fn(async () => {}),
     updateUser: vi.fn(),
     retryRestore: vi.fn(),
@@ -194,5 +199,13 @@ describe('ProfilePage', () => {
 
     await waitFor(() => expect(userService.deleteMe).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(1))
+  })
+
+  it('una cuenta creada con Google no ofrece cambiar la contraseña', () => {
+    renderPage({ ...valeria, googleOnly: true, googleLinked: true })
+
+    const security = screen.getByRole('region', { name: 'Seguridad' })
+    expect(security).toHaveTextContent('Entras con la cuenta de Google valeria@checkout.test')
+    expect(screen.queryByLabelText(/Contraseña actual/)).not.toBeInTheDocument()
   })
 })
