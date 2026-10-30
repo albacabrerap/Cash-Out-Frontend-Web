@@ -14,12 +14,16 @@ export interface User {
   createdAt: string
   /** Cuando cambio la foto de perfil; no viene si no tiene. */
   avatarUpdatedAt?: string
+  /** Creada con Google: solo entra con Google y no hay contrasena que cambiar. */
+  googleOnly: boolean
+  googleLinked: boolean
+  /** Confirmo su correo con el enlace, o entro con Google. */
+  emailVerified: boolean
 }
 
-/** Respuesta de login, registro y refresh. */
+/** Respuesta de login, registro y refresh. El token de refresco no llega: va en una cookie HttpOnly. */
 export interface AuthResponse {
   accessToken: string
-  refreshToken: string
   tokenType: string
   /** Segundos. */
   expiresIn: number
@@ -47,4 +51,16 @@ export interface UpdateUserRequest {
 export interface ChangePasswordRequest {
   currentPassword: string
   newPassword: string
+}
+
+/** Registro con verificacion obligatoria: hay cuenta, pero no sesion hasta abrir el enlace del correo. */
+export interface PendingVerification {
+  user: User
+  emailVerificationRequired: true
+}
+
+export interface RegisterResult {
+  user: User
+  /** true: se mando el enlace y todavia no hay sesion. */
+  verificationRequired: boolean
 }

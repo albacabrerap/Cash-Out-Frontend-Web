@@ -46,10 +46,12 @@ function withCrossTabLock<T>(task: () => Promise<T>): Promise<T> {
  * el mismo refresh en vez de lanzar uno cada uno.
  */
 export function createApiClient({ baseURL, timeoutMs = 15_000, adapter }: ApiClientOptions): ApiClient {
+  // X-Session-Mode: cookie le pide al backend el token de refresco en una cookie HttpOnly.
   const defaults = {
     baseURL,
     timeout: timeoutMs,
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Session-Mode': 'cookie' },
+    withCredentials: true,
     adapter,
   }
 
@@ -60,13 +62,13 @@ export function createApiClient({ baseURL, timeoutMs = 15_000, adapter }: ApiCli
   let inFlight: Promise<AuthResponse> | null = null
 
   async function performRefresh(): Promise<AuthResponse> {
-    const refreshToken = tokenStore.getRefreshToken()
-    if (!refreshToken) {
+    if (!tokenStore.hasSession()) {
       throw new ApiError({ kind: 'http', status: 401, serverMessage: 'No hay una sesión activa.' })
     }
 
     try {
-      const { data } = await bare.post<AuthResponse>('/auth/refresh', { refreshToken })
+      // El token de refresco va en la cookie: el navegador la manda solo.
+      const { data } = await bare.post<AuthResponse>('/auth/refresh')
       tokenStore.setSession(data)
       return data
     } catch (error) {
@@ -110,7 +112,7 @@ export function createApiClient({ baseURL, timeoutMs = 15_000, adapter }: ApiCli
         return http(config)
       }
 
-      if (tokenStore.getRefreshToken() === null) {
+      if (!tokenStore.hasSession()) {
         throw toApiError(error)
       }
 

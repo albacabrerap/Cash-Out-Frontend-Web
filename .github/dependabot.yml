@@ -1,0 +1,13 @@
+# Dependabot abre un PR cuando una dependencia tiene una version nueva o un
+# aviso de seguridad. Los de seguridad llegan aunque el limite este lleno.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Las de desarrollo juntas en un solo PR: no llegan a produccion.
+      dev-dependencies:
+        dependency-type: development

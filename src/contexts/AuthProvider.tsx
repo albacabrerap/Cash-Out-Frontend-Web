@@ -8,7 +8,7 @@ import { AuthContext, type AuthContextValue, type AuthStatus } from './authConte
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [status, setStatus] = useState<AuthStatus>(() =>
-    tokenStore.getRefreshToken() ? 'restoring' : 'anonymous',
+    tokenStore.hasSession() ? 'restoring' : 'anonymous',
   )
   const [endReason, setEndReason] = useState<SessionEndReason | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!tokenStore.getRefreshToken()) return
+    if (!tokenStore.hasSession()) return
 
     // StrictMode lo ejecuta dos veces; el refresh de un solo vuelo evita gastar el token dos veces.
     let active = true
@@ -48,7 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const register = useCallback(async (request: RegisterRequest, signal?: AbortSignal) => {
-    const auth = await authService.register(request, signal)
+    const result = await authService.register(request, signal)
+    return { user: result.user, verificationRequired: 'emailVerificationRequired' in result }
+  }, [])
+
+  const verifyEmail = useCallback(async (token: string, signal?: AbortSignal) => {
+    const auth = await authService.verifyEmail(token, signal)
+    return auth.user
+  }, [])
+
+  const loginWithGoogle = useCallback(async (credential: string) => {
+    const auth = await authService.google(credential)
     return auth.user
   }, [])
 
@@ -62,8 +72,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = useCallback((role: Role) => user?.roles.includes(role) ?? false, [user])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, endReason, login, register, logout, updateUser: setUser, retryRestore, hasRole }),
-    [status, user, endReason, login, register, logout, retryRestore, hasRole],
+    () => ({
+      status,
+      user,
+      endReason,
+      login,
+      register,
+      verifyEmail,
+      loginWithGoogle,
+      logout,
+      updateUser: setUser,
+      retryRestore,
+      hasRole,
+    }),
+    [status, user, endReason, login, register, verifyEmail, loginWithGoogle, logout, retryRestore, hasRole],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>

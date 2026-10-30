@@ -14,6 +14,8 @@ import { PasswordInput } from '@/components/forms/PasswordInput'
 import { PasswordStrength } from '@/components/forms/PasswordStrength'
 import { PARTICLE_COLORS } from '@/components/landing/palettes'
 import { RisingParticles } from '@/components/landing/RisingParticles'
+import { CheckYourEmail } from '@/components/auth/CheckYourEmail'
+import { GoogleSignIn } from '@/components/auth/GoogleSignIn'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -26,6 +28,7 @@ export default function RegisterPage() {
   const { register: registerAccount } = useAuth()
   const { resolvedTheme } = useTheme()
   const [formError, setFormError] = useState<string | null>(null)
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
@@ -37,12 +40,14 @@ export default function RegisterPage() {
   const onSubmit = async (values: RegisterFormValues) => {
     setFormError(null)
     try {
-      await registerAccount({
+      const result = await registerAccount({
         name: values.name,
         email: values.email,
         password: values.password,
         birthDate: values.birthDate || undefined,
       })
+      // Sin verificacion pendiente, GuestOnly redirige al abrirse la sesion.
+      if (result.verificationRequired) setPendingEmail(result.user.email)
     } catch (err) {
       const error = toApiError(err)
       if (error.status === 409) {
@@ -81,101 +86,114 @@ export default function RegisterPage() {
             </Alert>
           )}
 
-          <form noValidate onSubmit={form.handleSubmit(onSubmit)} className={cn(AUTH_FORM_ENTER, 'flex flex-col gap-6')}>
-            <FieldGroup>
-              <Field data-invalid={!!errors.name}>
-                <FieldLabel htmlFor="register-name">Nombre completo</FieldLabel>
-                <Input
-                  id="register-name"
-                  autoComplete="name"
-                  maxLength={120}
-                  placeholder="Ana Torres"
-                  className={AUTH_INPUT}
-                  aria-invalid={!!errors.name}
-                  {...form.register('name')}
-                />
-                <FieldError errors={[errors.name]} />
-              </Field>
-              <Field data-invalid={!!errors.email}>
-                <FieldLabel htmlFor="register-email">Correo</FieldLabel>
-                <Input
-                  id="register-email"
-                  type="email"
-                  autoComplete="email"
-                  inputMode="email"
-                  maxLength={180}
-                  placeholder="tu@correo.com"
-                  className={AUTH_INPUT}
-                  aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? undefined : 'register-email-hint'}
-                  {...form.register('email')}
-                />
-                {errors.email ? (
-                  <FieldError errors={[errors.email]} />
-                ) : (
-                  <FieldDescription id="register-email-hint">Con este correo vas a iniciar sesión.</FieldDescription>
-                )}
-              </Field>
-              <Field data-invalid={!!errors.password}>
-                <FieldLabel htmlFor="register-password">Contraseña</FieldLabel>
-                <PasswordInput
-                  id="register-password"
-                  autoComplete="new-password"
-                  maxLength={100}
-                  placeholder="Crea una contraseña"
-                  className={AUTH_INPUT}
-                  aria-invalid={!!errors.password}
-                  aria-describedby="register-password-rules"
-                  {...form.register('password')}
-                />
-                <PasswordStrength id="register-password-rules" value={password} />
-                <FieldError errors={[errors.password]} />
-              </Field>
-              <Field data-invalid={!!errors.birthDate}>
-                <FieldLabel htmlFor="register-birth">
-                  Fecha de nacimiento <span className="font-normal text-muted-foreground">(opcional)</span>
-                </FieldLabel>
-                <Input
-                  id="register-birth"
-                  type="date"
-                  autoComplete="bday"
-                  max={yesterdayIso()}
-                  className={cn(AUTH_INPUT, 'dark:scheme-dark')}
-                  aria-invalid={!!errors.birthDate}
-                  {...form.register('birthDate')}
-                />
-                <FieldError errors={[errors.birthDate]} />
-              </Field>
-              <Field data-invalid={!!errors.accepted}>
-                <label htmlFor="register-accepted" className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                  <input
-                    id="register-accepted"
-                    type="checkbox"
-                    className="mt-0.5 size-4 shrink-0 accent-primary"
-                    aria-invalid={!!errors.accepted}
-                    {...form.register('accepted')}
+          {pendingEmail ? (
+            <div className="flex flex-col gap-4">
+              <CheckYourEmail email={pendingEmail} title="Tu cuenta está creada" />
+              <Button asChild variant="outline">
+                <Link to="/login">Ya lo confirmé: iniciar sesión</Link>
+              </Button>
+            </div>
+          ) : (
+            <>
+            <GoogleSignIn onError={setFormError} />
+
+            <form noValidate onSubmit={form.handleSubmit(onSubmit)} className={cn(AUTH_FORM_ENTER, 'flex flex-col gap-6')}>
+              <FieldGroup>
+                <Field data-invalid={!!errors.name}>
+                  <FieldLabel htmlFor="register-name">Nombre completo</FieldLabel>
+                  <Input
+                    id="register-name"
+                    autoComplete="name"
+                    maxLength={120}
+                    placeholder="Ana Torres"
+                    className={AUTH_INPUT}
+                    aria-invalid={!!errors.name}
+                    {...form.register('name')}
                   />
-                  <span>
-                    Entiendo que Cash-Out es un <strong className="font-semibold text-foreground">proyecto académico</strong>{' '}
-                    y que invierto con <strong className="font-semibold text-foreground">fichas</strong>, no con dinero
-                    real.
-                  </span>
-                </label>
-                <FieldError errors={[errors.accepted]} />
-              </Field>
-            </FieldGroup>
-            {/* Se ve apagado hasta completar el formulario, pero se puede presionar para ver que falta. */}
-            <Button
-              type="submit"
-              size="lg"
-              disabled={isSubmitting}
-              aria-disabled={!isValid}
-              className="h-12 w-full rounded-xl text-[15px] aria-disabled:bg-primary/40 aria-disabled:hover:bg-primary/40"
-            >
-              {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-              {isSubmitting ? 'Creando tu cuenta…' : 'Crear cuenta'}
-            </Button>
-          </form>
+                  <FieldError errors={[errors.name]} />
+                </Field>
+                <Field data-invalid={!!errors.email}>
+                  <FieldLabel htmlFor="register-email">Correo</FieldLabel>
+                  <Input
+                    id="register-email"
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    maxLength={180}
+                    placeholder="tu@correo.com"
+                    className={AUTH_INPUT}
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? undefined : 'register-email-hint'}
+                    {...form.register('email')}
+                  />
+                  {errors.email ? (
+                    <FieldError errors={[errors.email]} />
+                  ) : (
+                    <FieldDescription id="register-email-hint">Con este correo vas a iniciar sesión.</FieldDescription>
+                  )}
+                </Field>
+                <Field data-invalid={!!errors.password}>
+                  <FieldLabel htmlFor="register-password">Contraseña</FieldLabel>
+                  <PasswordInput
+                    id="register-password"
+                    autoComplete="new-password"
+                    maxLength={100}
+                    placeholder="Crea una contraseña"
+                    className={AUTH_INPUT}
+                    aria-invalid={!!errors.password}
+                    aria-describedby="register-password-rules"
+                    {...form.register('password')}
+                  />
+                  <PasswordStrength id="register-password-rules" value={password} />
+                  <FieldError errors={[errors.password]} />
+                </Field>
+                <Field data-invalid={!!errors.birthDate}>
+                  <FieldLabel htmlFor="register-birth">
+                    Fecha de nacimiento <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </FieldLabel>
+                  <Input
+                    id="register-birth"
+                    type="date"
+                    autoComplete="bday"
+                    max={yesterdayIso()}
+                    className={cn(AUTH_INPUT, 'dark:scheme-dark')}
+                    aria-invalid={!!errors.birthDate}
+                    {...form.register('birthDate')}
+                  />
+                  <FieldError errors={[errors.birthDate]} />
+                </Field>
+                <Field data-invalid={!!errors.accepted}>
+                  <label htmlFor="register-accepted" className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                    <input
+                      id="register-accepted"
+                      type="checkbox"
+                      className="mt-0.5 size-4 shrink-0 accent-primary"
+                      aria-invalid={!!errors.accepted}
+                      {...form.register('accepted')}
+                    />
+                    <span>
+                      Entiendo que Cash-Out es un <strong className="font-semibold text-foreground">proyecto académico</strong>{' '}
+                      y que invierto con <strong className="font-semibold text-foreground">fichas</strong>, no con dinero
+                      real.
+                    </span>
+                  </label>
+                  <FieldError errors={[errors.accepted]} />
+                </Field>
+              </FieldGroup>
+              {/* Se ve apagado hasta completar el formulario, pero se puede presionar para ver que falta. */}
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isSubmitting}
+                aria-disabled={!isValid}
+                className="h-12 w-full rounded-xl text-[15px] aria-disabled:bg-primary/40 aria-disabled:hover:bg-primary/40"
+              >
+                {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
+                {isSubmitting ? 'Creando tu cuenta…' : 'Crear cuenta'}
+              </Button>
+            </form>
+            </>
+          )}
         </div>
       </div>
     </div>
