@@ -40,6 +40,12 @@ export const routes: RouteObject[] = [
             ],
           },
           {
+            // Fuera de GuestOnly: el enlace del correo se abre con o sin sesion.
+            path: 'verificar-correo',
+            handle: { title: 'Confirmar correo' } satisfies RouteHandle,
+            lazy: page(() => import('@/pages/auth/VerifyEmailPage')),
+          },
+          {
             path: '*',
             handle: { title: 'Página no encontrada' } satisfies RouteHandle,
             lazy: page(() => import('@/pages/NotFoundPage')),
@@ -54,6 +60,16 @@ export const routes: RouteObject[] = [
             path: 'carrera/:code/pantalla',
             handle: { title: 'Pantalla de la carrera' } satisfies RouteHandle,
             lazy: page(() => import('@/pages/race/RaceHostPage')),
+          },
+          {
+            path: 'minijuegos/sube-o-baja/:code/pantalla',
+            handle: { title: 'Pantalla de ¿Sube o baja?' } satisfies RouteHandle,
+            lazy: page(() => import('@/pages/updown/UpDownHostPage')),
+          },
+          {
+            path: 'minijuegos/arma-tu-portafolio/:code/pantalla',
+            handle: { title: 'Pantalla de Arma tu portafolio' } satisfies RouteHandle,
+            lazy: page(() => import('@/pages/portfolioGame/PortfolioGameHostPage')),
           },
           {
             element: <AppShell />,
@@ -102,6 +118,11 @@ export const routes: RouteObject[] = [
                     lazy: page(() => import('@/pages/admin/AdminMinigamesPage')),
                   },
                   {
+                    path: 'sube-o-baja',
+                    handle: { crumb: '¿Sube o baja?', title: 'Casos de ¿Sube o baja?' } satisfies RouteHandle,
+                    lazy: page(() => import('@/pages/admin/AdminUpDownCasesPage')),
+                  },
+                  {
                     path: 'activos',
                     handle: { crumb: 'Activos', title: 'Catálogo de activos' } satisfies RouteHandle,
                     lazy: page(() => import('@/pages/admin/AdminAssetsPage')),
@@ -125,6 +146,16 @@ export const routes: RouteObject[] = [
                 handle: { crumb: 'Minijuegos', title: 'Minijuegos' } satisfies RouteHandle,
                 children: [
                   { index: true, lazy: page(() => import('@/pages/minigames/MinigamesPage')) },
+                  {
+                    path: 'sube-o-baja/:code',
+                    handle: { crumb: '¿Sube o baja?', title: '¿Sube o baja?' } satisfies RouteHandle,
+                    lazy: page(() => import('@/pages/updown/UpDownPlayerPage')),
+                  },
+                  {
+                    path: 'arma-tu-portafolio/:code',
+                    handle: { crumb: 'Arma tu portafolio', title: 'Arma tu portafolio' } satisfies RouteHandle,
+                    lazy: page(() => import('@/pages/portfolioGame/PortfolioGamePlayerPage')),
+                  },
                   {
                     path: ':id',
                     handle: { crumb: 'Partida', title: 'Partida' } satisfies RouteHandle,

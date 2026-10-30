@@ -249,6 +249,12 @@
   }
 }
 
+@keyframes updown-wipe {
+  from {
+    transform: scaleX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -257,4 +263,11 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* El cambio de tema se abre en un circulo (ThemeToggle): sin el fundido por defecto de View Transitions. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }

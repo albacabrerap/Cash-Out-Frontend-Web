@@ -11,7 +11,7 @@ async function open(path: string, signal: AbortSignal, retried = false): Promise
     headers: { Accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     signal,
   })
-  if (response.status === 401 && !retried && tokenStore.getRefreshToken()) {
+  if (response.status === 401 && !retried && tokenStore.hasSession()) {
     await api.refreshSession()
     return open(path, signal, true)
   }

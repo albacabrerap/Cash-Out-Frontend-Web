@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import type { Asset, AssetQuote, AssetType, Portfolio } from '@/types/market'
 import { marketService } from '@/services/marketService'
 import { portfolioService } from '@/services/portfolioService'
+import { watchlistService } from '@/services/watchlistService'
 import MarketPage from './MarketPage'
 
 const media = vi.hoisted(() => ({ wide: true }))
@@ -13,6 +14,8 @@ vi.mock('@/services/portfolioService', () => ({ portfolioService: { get: vi.fn()
 vi.mock('@/services/walletService', () => ({
   walletService: { get: vi.fn().mockResolvedValue({ id: 1, tokenBalance: 500, updatedAt: '2026-10-21T15:00:00' }) },
 }))
+vi.mock('@/services/watchlistService', () => ({ watchlistService: { list: vi.fn(), add: vi.fn(), remove: vi.fn() } }))
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('@/services/marketService', () => ({
   marketService: {
     searchAssets: vi.fn(),
@@ -118,14 +121,17 @@ describe('MarketPage', () => {
       { date: '2026-10-20', closePrice: 770 },
     ])
     vi.mocked(portfolioService.get).mockResolvedValue(portfolio)
+    vi.mocked(watchlistService.list).mockReset()
+    vi.mocked(watchlistService.list).mockResolvedValue([SPY])
+    vi.mocked(watchlistService.add).mockResolvedValue()
   })
 
   it('cada fila trae su precio del lote y el primer destacado abre el panel', async () => {
     renderPage()
 
-    const rows = await screen.findByRole('list', { name: 'Activos' })
-    const aapl = (await within(rows).findByRole('button', { name: 'AAPL' })).closest('li')!
-    expect(await within(aapl).findByText(/343\.94/)).toBeInTheDocument()
+    const rows = await screen.findByRole('table', { name: 'Activos' })
+    const aapl = (await within(rows).findByRole('button', { name: 'AAPL' })).closest<HTMLElement>('[role=row]')!
+    expect(await within(aapl).findAllByText(/343\.94/)).not.toHaveLength(0)
     expect(within(aapl).getAllByText('+1.16 %')).not.toHaveLength(0)
     expect(within(aapl).getByText(/en tu portafolio/)).toBeInTheDocument()
     expect(marketService.quotes).toHaveBeenCalledWith([AAPL.id, AMZN.id, SPY.id], expect.anything())
@@ -171,7 +177,7 @@ describe('MarketPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Solo los míos · 1' }))
 
-    const rows = await screen.findByRole('list', { name: 'Activos' })
+    const rows = await screen.findByRole('table', { name: 'Activos' })
     expect(await within(rows).findByRole('button', { name: 'AAPL' })).toBeInTheDocument()
     expect(within(rows).queryByRole('button', { name: 'AMZN' })).not.toBeInTheDocument()
     expect(getAsset).toHaveBeenCalledWith(AAPL.id, expect.anything())
@@ -193,5 +199,37 @@ describe('MarketPage', () => {
     const link = await screen.findByRole('link', { name: 'AAPL' })
     expect(link).toHaveAttribute('href', `/portafolio/mercado/${AAPL.id}`)
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+  })
+
+  it('ordena por cambio % al tocar el encabezado, y al reves la segunda vez', async () => {
+    const router = renderPage()
+    const table = await screen.findByRole('table', { name: 'Activos' })
+    await within(table).findAllByText('−0.84 %')
+    const symbols = () => within(table).getAllByRole('row').slice(1).map((row) => row.querySelectorAll('[role=cell]')[1]?.querySelector('button, a')?.textContent)
+
+    await userEvent.click(within(table).getByRole('button', { name: 'Cambio %' }))
+    expect(router.state.location.search).toBe('?sort=changePct%2Cdesc')
+    expect(symbols()).toEqual(['AAPL', 'SPY', 'AMZN'])
+    expect(within(table).getByRole('columnheader', { name: /Cambio %/ })).toHaveAttribute('aria-sort', 'descending')
+
+    await userEvent.click(within(table).getByRole('button', { name: 'Cambio %' }))
+    expect(symbols()).toEqual(['AMZN', 'SPY', 'AAPL'])
+  })
+
+  it('la estrella agrega a favoritos y aparece arriba', async () => {
+    renderPage()
+    const favorites = await screen.findByRole('table', { name: 'Favoritos' })
+    expect(await within(favorites).findByRole('button', { name: 'SPY' })).toBeInTheDocument()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Agregar AAPL a favoritos' }))
+    expect(watchlistService.add).toHaveBeenCalledWith(AAPL.id)
+    expect(await within(favorites).findByRole('button', { name: 'AAPL' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Quitar AAPL de favoritos' })).not.toHaveLength(0)
+  })
+
+  it('sin favoritos explica como agregarlos', async () => {
+    vi.mocked(watchlistService.list).mockResolvedValue([])
+    renderPage()
+    expect(await screen.findByText(/de un activo para seguirlo aquí/)).toBeInTheDocument()
   })
 })

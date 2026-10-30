@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router'
-import { FilterX, SearchX } from 'lucide-react'
+import { Navigate, useLocation, useNavigate } from 'react-router'
+import { FilterX, SearchX, Star } from 'lucide-react'
 import { useApiQuery } from '@/hooks/useApiQuery'
 import { useListParams } from '@/hooks/useListParams'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { OrderTarget } from '@/hooks/useOrderForm'
+import { useWatchlist } from '@/hooks/useWatchlist'
 import { addDays, todayIso } from '@/lib/dates'
 import type { ListConfig } from '@/lib/listParams'
-import { ASSET_TYPE_LABEL, formatSignedPercent, formatUsd } from '@/lib/market'
+import { MARKET_SORTS, parseMarketSort, RELEVANCE, sortAssets } from '@/lib/marketSort'
 import type { ListReturnState } from '@/lib/routeParams'
 import { cn } from '@/lib/utils'
 import { marketService } from '@/services/marketService'
@@ -17,6 +18,7 @@ import { DataPagination } from '@/components/data/DataPagination'
 import { ErrorState } from '@/components/feedback/ErrorState'
 import { SearchInput } from '@/components/filters/SearchInput'
 import { AssetDetailPanel } from '@/components/market/AssetDetailPanel'
+import { AssetTable } from '@/components/market/AssetTable'
 import { FeaturedAssets, type FeaturedAsset } from '@/components/market/FeaturedAssets'
 import { OrderDialog } from '@/components/portfolio/OrderDialog'
 import { PortfolioHeader } from '@/components/portfolio/PortfolioHeader'
@@ -25,8 +27,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 type Filter = 'search' | 'type' | 'letra' | 'mios'
 
-// El backend ordena solo (simbolo exacto primero); no hay orden que elegir.
-const LIST_CONFIG: ListConfig<Filter> = { sorts: ['symbol'], defaultSort: 'symbol', filters: ['search', 'type', 'letra', 'mios'] }
+// El orden por columna se aplica en la web a lo que se ve: el backend solo ordena por relevancia.
+const LIST_CONFIG: ListConfig<Filter> = { sorts: MARKET_SORTS, defaultSort: RELEVANCE, filters: ['search', 'type', 'letra', 'mios'] }
 
 const FACETS: { value: '' | AssetType; label: string }[] = [
   { value: '', label: 'Todos' },
@@ -37,8 +39,6 @@ const FACETS: { value: '' | AssetType; label: string }[] = [
 const FEATURED = ['SPY', 'QQQ', 'BTC-USD', 'ETH-USD']
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 const SUGGESTIONS = ['Apple', 'Tesla', 'S&P 500', 'Bitcoin']
-const COLUMNS =
-  'grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1fr)_4.5rem_7rem_4.5rem] xl:grid-cols-[6.5rem_minmax(0,1fr)_4.5rem_4.5rem_7rem_4.5rem]'
 
 const isAssetType = (value: string): value is AssetType =>
   value === 'STOCK' || value === 'ETF' || value === 'FUND' || value === 'CRYPTO'
@@ -46,6 +46,8 @@ const isAssetType = (value: string): value is AssetType =>
 export default function MarketPage() {
   const list = useListParams(LIST_CONFIG)
   const { page, size, filters } = list
+  const sort = parseMarketSort(list.sort)
+  const watchlist = useWatchlist()
   const location = useLocation()
   const navigate = useNavigate()
   const isWide = useMediaQuery('(min-width: 1024px)')
@@ -102,7 +104,11 @@ export default function MarketPage() {
     : query.data?.content
   const ids = rows?.map((asset) => asset.id) ?? []
   const quotes = useApiQuery(['asset-quotes', ids], (signal) => marketService.quotes(ids, signal))
-  const quoteOf = (asset: Asset): AssetQuote | undefined => quotes.data?.find((quote) => quote.symbol === asset.symbol)
+  const favoriteIds = watchlist.assets?.map((asset) => asset.id) ?? []
+  const favoriteQuotes = useApiQuery(['favorite-quotes', favoriteIds], (signal) => marketService.quotes(favoriteIds, signal))
+  const quoteOf = (asset: Asset): AssetQuote | undefined =>
+    [...(quotes.data ?? []), ...(favoriteQuotes.data ?? [])].find((quote) => quote.symbol === asset.symbol)
+  const setSort = (value: string) => list.update({ sort: value }, { replace: true })
 
   useEffect(() => {
     const focus = (event: KeyboardEvent) => {
@@ -128,6 +134,17 @@ export default function MarketPage() {
   const loading = mine ? !held.data : query.isLoading
   const error = mine ? held.error : query.error
   const hasFilters = Boolean(filters.search || type || letter || mine)
+  const tableProps = {
+    sort,
+    onSort: setSort,
+    heldIds,
+    isFavorite: watchlist.isFavorite,
+    onToggleFavorite: (asset: Asset) => void watchlist.toggle(asset),
+    wide: isWide,
+    selectedId: selected?.id,
+    onSelect: setPicked,
+    returnState,
+  }
   const clearFilters = () => list.update({ search: '', type: '', letra: '', mios: '' })
 
   return (
@@ -137,7 +154,35 @@ export default function MarketPage() {
       <FeaturedAssets items={featured.error ? [] : featured.data} selectedId={selected?.id} onSelect={select} />
 
       <div className={cn('grid items-start gap-5', isWide && 'lg:grid-cols-[minmax(0,1fr)_23rem]')}>
-        <section aria-labelledby="mercado-catalogo" className="min-w-0 overflow-hidden rounded-2xl border bg-card">
+        <div className="min-w-0 space-y-5">
+        <section aria-labelledby="mercado-favoritos" className="overflow-hidden rounded-2xl border bg-card">
+          <div className="px-4 pt-4 pb-3 sm:px-5">
+            <h2 id="mercado-favoritos" className="flex items-center gap-2 text-[15px] font-semibold">
+              <Star aria-hidden="true" className="size-4 fill-current text-accent-ink" />
+              Favoritos
+            </h2>
+          </div>
+          {watchlist.error && !watchlist.assets ? (
+            <ErrorState error={watchlist.error} onRetry={watchlist.reload} title="No pudimos cargar tus favoritos" className="mx-4 mb-4 sm:mx-5" />
+          ) : watchlist.assets?.length === 0 ? (
+            <p className="border-t px-4 py-5 text-[13px] text-muted-foreground sm:px-5">
+              Toca la <Star aria-hidden="true" className="inline size-3.5 align-[-2px]" /> de un activo para seguirlo aquí, con su precio del día.
+            </p>
+          ) : (
+            <div className="border-t">
+              <AssetTable
+                label="Favoritos"
+                assets={watchlist.assets && sortAssets(watchlist.assets, sort, quoteOf)}
+                quoteOf={quoteOf}
+                quotesLoading={favoriteQuotes.isLoading || favoriteQuotes.isRefreshing}
+                skeletonRows={3}
+                {...tableProps}
+              />
+            </div>
+          )}
+        </section>
+
+        <section aria-labelledby="mercado-catalogo" className="overflow-hidden rounded-2xl border bg-card">
           <h2 id="mercado-catalogo" className="sr-only">
             Catálogo de activos
           </h2>
@@ -239,37 +284,13 @@ export default function MarketPage() {
                 </div>
               ) : (
                 <div aria-busy={loading || query.isRefreshing} className={cn('transition-opacity', query.isRefreshing && 'opacity-60')}>
-                  <div aria-hidden="true" className={cn('hidden gap-3 border-b px-5 py-2.5 text-xs text-muted-foreground sm:grid', COLUMNS)}>
-                    <span>Símbolo</span>
-                    <span>Nombre</span>
-                    <span>Tipo</span>
-                    <span className="hidden xl:block">Bolsa</span>
-                    <span className="text-right">Precio</span>
-                    <span className="text-right">Hoy</span>
-                  </div>
-                  <ul aria-label="Activos">
-                    {loading || !rows
-                      ? Array.from({ length: 8 }, (_, i) => (
-                          <li key={i} className="flex items-center gap-3 border-b px-5 py-3">
-                            <Skeleton className="size-7 rounded-lg" />
-                            <Skeleton className="h-4 max-w-56 flex-1" />
-                            <Skeleton className="h-4 w-20" />
-                          </li>
-                        ))
-                      : rows.map((asset) => (
-                          <AssetRow
-                            key={asset.id}
-                            asset={asset}
-                            quote={quoteOf(asset)}
-                            quotesLoading={quotes.isLoading || quotes.isRefreshing}
-                            held={heldIds.includes(asset.id)}
-                            wide={isWide}
-                            selected={asset.id === selected?.id}
-                            onSelect={() => setPicked(asset)}
-                            returnState={returnState}
-                          />
-                        ))}
-                  </ul>
+                  <AssetTable
+                    label="Activos"
+                    assets={loading || !rows ? undefined : sortAssets(rows, sort, quoteOf)}
+                    quoteOf={quoteOf}
+                    quotesLoading={quotes.isLoading || quotes.isRefreshing}
+                    {...tableProps}
+                  />
                 </div>
               )}
               {!mine && data && data.totalElements > 0 && (
@@ -287,7 +308,13 @@ export default function MarketPage() {
               )}
             </div>
           </div>
+          {sort && !mine && (
+            <p className="border-t px-4 py-2.5 text-xs text-muted-foreground sm:px-5">
+              El orden por columna se aplica a esta página; las demás páginas siguen el orden por relevancia.
+            </p>
+          )}
         </section>
+        </div>
 
         {selected ? (
           <AssetDetailPanel
@@ -295,6 +322,8 @@ export default function MarketPage() {
             asset={selected}
             position={positions.find((position) => position.assetId === selected.id)}
             onTrade={setTarget}
+            favorite={watchlist.isFavorite(selected.id)}
+            onToggleFavorite={() => void watchlist.toggle(selected)}
           />
         ) : (
           isWide && <Skeleton className="h-[34rem] rounded-2xl" />
@@ -310,77 +339,5 @@ export default function MarketPage() {
         }}
       />
     </>
-  )
-}
-
-interface AssetRowProps {
-  asset: Asset
-  quote: AssetQuote | undefined
-  quotesLoading: boolean
-  held: boolean
-  /** En pantalla ancha la fila elige el detalle de al lado; en el celular abre la pagina del activo. */
-  wide: boolean
-  selected: boolean
-  onSelect: () => void
-  returnState: ListReturnState
-}
-
-function AssetRow({ asset, quote, quotesLoading, held, wide, selected, onSelect, returnState }: AssetRowProps) {
-  const change = quote?.changePercent ?? null
-  const target =
-    'block truncate text-left font-semibold outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset'
-  const price = quote ? (
-    formatUsd(quote.price)
-  ) : quotesLoading ? (
-    <span className="inline-block h-3.5 w-16 animate-pulse rounded bg-muted align-middle" />
-  ) : (
-    '—'
-  )
-
-  return (
-    <li
-      className={cn(
-        'relative grid items-center gap-3 border-b px-4 py-2.5 text-[13px] transition-colors last:border-b-0 hover:bg-muted/50 sm:px-5',
-        COLUMNS,
-        selected && 'bg-muted/60 shadow-[inset_3px_0_0_var(--accent-ink)]',
-      )}
-    >
-      <span className="flex min-w-0 items-center gap-2.5">
-        <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-lg bg-muted text-[11px] font-bold">
-          {asset.symbol[0]}
-        </span>
-        <span className="min-w-0">
-          {wide ? (
-            <button type="button" aria-pressed={selected} onClick={onSelect} className={target}>
-              {asset.symbol}
-            </button>
-          ) : (
-            <Link to={String(asset.id)} state={returnState} className={cn(target, 'underline-offset-4 hover:underline')}>
-              {asset.symbol}
-            </Link>
-          )}
-          <span className="block truncate text-xs text-muted-foreground sm:hidden">{asset.name}</span>
-        </span>
-      </span>
-      <span className="hidden min-w-0 truncate sm:block">
-        {asset.name}
-        {held && <span className="text-xs text-accent-ink"> · en tu portafolio</span>}
-      </span>
-      <span className="hidden sm:block">
-        <span className="rounded-full border px-2 py-px text-[11px]">{ASSET_TYPE_LABEL[asset.type]}</span>
-      </span>
-      <span className="hidden text-muted-foreground xl:block">{asset.exchange ?? '—'}</span>
-      <span className="text-right">
-        <span className="block font-mono tabular-nums">{price}</span>
-        {change !== null && (
-          <span className={cn('block text-xs tabular-nums sm:hidden', change >= 0 ? 'text-gain' : 'text-loss')}>
-            {formatSignedPercent(change)}
-          </span>
-        )}
-      </span>
-      <span className={cn('hidden text-right tabular-nums sm:block', change !== null && (change >= 0 ? 'text-gain' : 'text-loss'))}>
-        {change !== null ? formatSignedPercent(change) : quotesLoading ? '' : '—'}
-      </span>
-    </li>
   )
 }

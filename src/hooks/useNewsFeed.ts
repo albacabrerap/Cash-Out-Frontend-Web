@@ -17,15 +17,18 @@ interface MorePages {
  * La primera pagina del mural y las que se cargan con "Cargar más". Las paginas
  * extra se guardan con la clave del filtro: al cambiarlo se descartan solas.
  */
-export function useNewsFeed(scope: NewsScope, symbol: string | undefined) {
+export function useNewsFeed(scope: NewsScope | undefined, symbol: string | undefined) {
   const key = `${scope}|${symbol ?? ''}`
-  const first = useApiQuery(['news', scope, symbol ?? null], (signal) => newsService.feed({ scope, symbol }, signal))
+  // Sin alcance todavia (se espera al portafolio) no se pide nada.
+  const first = useApiQuery(['news', scope ?? null, symbol ?? null], (signal) =>
+    scope ? newsService.feed({ scope, symbol }, signal) : Promise.resolve(null),
+  )
   const [more, setMore] = useState<MorePages>()
   const extra = more?.key === key ? more : undefined
   const next = extra ? extra.next : first.data?.nextPageToken
 
   const loadMore = useAsyncAction(async () => {
-    if (!next) return
+    if (!next || !scope) return
     try {
       const page = await newsService.feed({ scope, symbol, pageToken: next })
       setMore((prev) => ({
@@ -39,7 +42,7 @@ export function useNewsFeed(scope: NewsScope, symbol: string | undefined) {
   })
 
   return {
-    items: first.data && appendNews(first.data.items, extra?.items ?? []),
+    items: first.data ? appendNews(first.data.items, extra?.items ?? []) : undefined,
     error: first.error,
     isLoading: first.isLoading,
     isRefreshing: first.isRefreshing,

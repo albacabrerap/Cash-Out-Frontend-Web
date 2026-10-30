@@ -15,6 +15,7 @@ const tokens = new Intl.NumberFormat('es-PE', {
 
 const dateTime = new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' })
 const dateOnly = new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' })
+const percent1 = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 /** 1234.5 → "S/ 1,234.50" */
 export function formatSoles(amount: number | null | undefined): string {
@@ -60,4 +61,10 @@ export function initials(fullName: string): string {
   const first = parts[0][0]
   const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
   return (first + last).toUpperCase()
+}
+
+/** −11.1 → "−11.1 %": con un decimal basta para leerlo en un proyector. */
+export function formatChange(value: number): string {
+  const sign = value > 0 ? '+' : value < 0 ? '−' : ''
+  return `${sign}${percent1.format(Math.abs(value))} %`
 }

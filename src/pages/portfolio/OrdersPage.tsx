@@ -1,111 +1,89 @@
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router'
 import { ListOrdered, Search } from 'lucide-react'
 import { useApiQuery } from '@/hooks/useApiQuery'
 import { useListParams } from '@/hooks/useListParams'
-import { formatDateTime } from '@/lib/format'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
+import type { OrderTarget } from '@/hooks/useOrderForm'
 import type { ListConfig } from '@/lib/listParams'
-import { formatQuantity, formatSignedTokens, formatUsd, ORDER_SIDE_LABEL, ORDER_STATUS_LABEL } from '@/lib/market'
+import { inPeriod, isOrderKind, isOrderPeriod, matchesKind, newestFirst, orderMetrics, type OrderKind } from '@/lib/orders'
+import { marketService } from '@/services/marketService'
 import { portfolioService } from '@/services/portfolioService'
 import type { TradeOrder } from '@/types/market'
 import { DataPagination } from '@/components/data/DataPagination'
-import { DataTable, type Column } from '@/components/data/DataTable'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ErrorState } from '@/components/feedback/ErrorState'
+import { OrderHistory, type Density } from '@/components/orders/OrderHistory'
+import { OrderMetrics } from '@/components/orders/OrderMetrics'
+import { OrderReceipt } from '@/components/orders/OrderReceipt'
+import { OrderDialog } from '@/components/portfolio/OrderDialog'
 import { PortfolioHeader } from '@/components/portfolio/PortfolioHeader'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
-// El historial va siempre del mas reciente al mas antiguo.
-const LIST_CONFIG: ListConfig<never> = { sorts: ['createdAt,desc'], defaultSort: 'createdAt,desc', filters: [] }
+type Filter = 'periodo' | 'tipo' | 'q'
 
-const COLUMNS: Column<TradeOrder>[] = [
-  {
-    id: 'date',
-    header: 'Fecha',
-    className: 'hidden md:table-cell',
-    cell: (order) => <span className="whitespace-nowrap text-muted-foreground">{formatDateTime(order.createdAt)}</span>,
-  },
-  {
-    id: 'asset',
-    header: 'Activo',
-    cell: (order) => (
-      <div>
-        <Link to={`/portafolio/mercado/${order.assetId}`} className="font-medium underline-offset-4 hover:underline">
-          {order.symbol}
-        </Link>
-        <p className="text-xs whitespace-nowrap text-muted-foreground md:hidden">
-          {ORDER_SIDE_LABEL[order.side]} · {formatDateTime(order.createdAt)}
-        </p>
-      </div>
-    ),
-  },
-  {
-    id: 'side',
-    header: 'Operación',
-    className: 'hidden md:table-cell',
-    cell: (order) => (
-      <Badge variant={order.side === 'BUY' ? 'secondary' : 'outline'}>{ORDER_SIDE_LABEL[order.side]}</Badge>
-    ),
-  },
-  {
-    id: 'quantity',
-    header: 'Cantidad',
-    className: 'text-right',
-    cell: (order) => <span className="tabular-nums">{formatQuantity(order.quantity)}</span>,
-  },
-  {
-    id: 'price',
-    header: 'Precio',
-    className: 'hidden text-right lg:table-cell',
-    cell: (order) => <span className="tabular-nums">{formatUsd(order.executionPrice)}</span>,
-  },
-  {
-    id: 'tokens',
-    header: 'Fichas',
-    className: 'text-right',
-    cell: (order) =>
-      order.status === 'EXECUTED' ? (
-        <span className={cn('tabular-nums', order.side === 'SELL' ? 'text-gain' : 'text-loss')}>
-          {formatSignedTokens(order.side === 'BUY' ? -order.tokensMoved : order.tokensMoved)}
-        </span>
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      ),
-  },
-  {
-    id: 'status',
-    header: 'Estado',
-    className: 'w-full max-w-0',
-    cell: (order) => (
-      <div className="min-w-28">
-        <Badge variant={order.status === 'REJECTED' ? 'destructive' : order.status === 'EXECUTED' ? 'outline' : 'secondary'}>
-          {ORDER_STATUS_LABEL[order.status]}
-        </Badge>
-        {order.rejectionReason && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{order.rejectionReason}</p>}
-      </div>
-    ),
-  },
-]
+// /orders no filtra ni busca: el historial completo se trae una vez y se filtra aqui.
+const LIST_CONFIG: ListConfig<Filter> = { sorts: ['createdAt,desc'], defaultSort: 'createdAt,desc', filters: ['periodo', 'tipo', 'q'] }
+const KINDS: OrderKind[] = ['todas', 'compras', 'ventas', 'rechazadas']
 
 export default function OrdersPage() {
   const list = useListParams(LIST_CONFIG)
-  const { page, size } = list
-  const params = { page: page - 1, size }
-  const query = useApiQuery(['orders', params], (signal) => portfolioService.listOrders(params, signal))
-  const data = query.data
+  const { page, size, filters } = list
+  const isWide = useMediaQuery('(min-width: 1024px)')
+  const [density, setDensity] = useState<Density>('comoda')
+  const [picked, setPicked] = useState<number | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [target, setTarget] = useState<OrderTarget | null>(null)
 
-  if (data && !query.isRefreshing && data.totalPages > 0 && page > data.totalPages) {
-    return <Navigate to={list.hrefForPage(data.totalPages)} replace />
+  const period = isOrderPeriod(filters.periodo) ? filters.periodo : '30d'
+  const kind = isOrderKind(filters.tipo) ? filters.tipo : 'todas'
+  const search = filters.q.trim().toUpperCase()
+
+  const orders = useApiQuery(['orders-all'], (signal) => portfolioService.allOrders(signal).then(newestFirst))
+  const portfolio = useApiQuery(['portfolio'], (signal) => portfolioService.get(signal))
+  const assetIds = [...new Set(orders.data?.map((order) => order.assetId))].sort((a, b) => a - b)
+  const assets = useApiQuery(['order-assets', assetIds], (signal) =>
+    Promise.all(assetIds.map((id) => marketService.getAsset(id, signal).catch(() => null))),
+  )
+  const names = Object.fromEntries((assets.data ?? []).flatMap((asset) => (asset ? [[asset.id, asset.name]] : [])))
+
+  const periodOrders = orders.data && inPeriod(orders.data, period)
+  const counts = periodOrders && (Object.fromEntries(KINDS.map((k) => [k, periodOrders.filter((order) => matchesKind(order, k)).length])) as Record<OrderKind, number>)
+  const visible = periodOrders?.filter((order) => matchesKind(order, kind) && (!search || order.symbol.includes(search)))
+  const totalPages = visible ? Math.max(1, Math.ceil(visible.length / size)) : 1
+  const pageOrders = visible?.slice((page - 1) * size, page * size)
+
+  if (visible && page > totalPages) {
+    return <Navigate to={list.hrefForPage(totalPages)} replace />
   }
+
+  const selected = orders.data?.find((order) => order.id === picked) ?? (isWide ? pageOrders?.[0] : undefined)
+  const select = (order: TradeOrder) => {
+    setPicked(order.id)
+    if (!isWide) setSheetOpen(true)
+  }
+  const repeat = (order: TradeOrder) => {
+    setSheetOpen(false)
+    setTarget({
+      assetId: order.assetId,
+      symbol: order.symbol,
+      name: names[order.assetId] ?? order.symbol,
+      side: order.side,
+      held: portfolio.data?.positions.find((position) => position.assetId === order.assetId)?.quantity ?? 0,
+    })
+  }
+  const receipt = selected && (
+    <OrderReceipt key={selected.id} order={selected} name={names[selected.assetId]} onRepeat={repeat} className="lg:sticky lg:top-20" />
+  )
 
   return (
     <>
       <PortfolioHeader />
 
-      {query.error && !data ? (
-        <ErrorState error={query.error} onRetry={query.reload} title="No pudimos cargar tus órdenes" />
-      ) : data && data.totalElements === 0 ? (
+      {orders.error && !orders.data ? (
+        <ErrorState error={orders.error} onRetry={orders.reload} title="No pudimos cargar tus órdenes" />
+      ) : orders.data && orders.data.length === 0 ? (
         <EmptyState
           icon={ListOrdered}
           title="Todavía no hiciste órdenes"
@@ -120,29 +98,70 @@ export default function OrdersPage() {
           }
         />
       ) : (
-        <div className="space-y-4">
-          <DataTable
-            caption="Tus órdenes de compra y venta"
-            columns={COLUMNS}
-            rows={data?.content}
-            rowKey={(order) => order.id}
-            loading={query.isLoading}
-            refreshing={query.isRefreshing}
-            skeletonRows={Math.min(size, 8)}
+        <>
+          <OrderMetrics
+            metrics={periodOrders && orderMetrics(periodOrders, period)}
+            period={period}
+            onPeriodChange={(value) => list.update({ periodo: value === '30d' ? '' : value })}
           />
-          {data && (
-            <DataPagination
-              page={page}
-              size={size}
-              totalElements={data.totalElements}
-              totalPages={data.totalPages}
-              hrefForPage={list.hrefForPage}
-              onSizeChange={(value) => list.update({ size: value })}
-              noun={{ one: 'orden', other: 'órdenes' }}
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <OrderHistory
+              orders={pageOrders}
+              counts={counts}
+              kind={kind}
+              onKindChange={(value) => list.update({ tipo: value === 'todas' ? '' : value })}
+              search={filters.q}
+              onSearch={(value) => list.update({ q: value }, { replace: true })}
+              density={density}
+              onDensityChange={setDensity}
+              names={names}
+              selectedId={selected?.id}
+              onSelect={select}
+              empty={
+                <div className="px-6 py-11 text-center">
+                  <p className="font-semibold">No hay órdenes con estos filtros</p>
+                  <Button size="sm" variant="outline" className="mt-2.5" onClick={() => list.update({ periodo: 'todo', tipo: '', q: '' })}>
+                    Ver todas
+                  </Button>
+                </div>
+              }
+              footer={
+                visible && visible.length > 0 ? (
+                  <DataPagination
+                    page={page}
+                    size={size}
+                    totalElements={visible.length}
+                    totalPages={totalPages}
+                    hrefForPage={list.hrefForPage}
+                    onSizeChange={(value) => list.update({ size: value })}
+                    noun={{ one: 'orden', other: 'órdenes' }}
+                  />
+                ) : null
+              }
             />
-          )}
-        </div>
+            {isWide && receipt}
+          </div>
+        </>
       )}
+
+      {!isWide && (
+        <Sheet open={sheetOpen && Boolean(selected)} onOpenChange={setSheetOpen}>
+          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto p-0 pt-10 [&_aside]:rounded-none [&_aside]:border-0">
+            <SheetTitle className="sr-only">Comprobante de la orden</SheetTitle>
+            {receipt}
+          </SheetContent>
+        </Sheet>
+      )}
+
+      <OrderDialog
+        target={target}
+        onOpenChange={(open) => !open && setTarget(null)}
+        onDone={() => {
+          setTarget(null)
+          orders.reload()
+          portfolio.reload()
+        }}
+      />
     </>
   )
 }
